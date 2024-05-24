@@ -1,10 +1,4 @@
-use crate::prompt_update::{
-    POST_PROMPT_MARKER, PRE_PROMPT_MARKER, VSCODE_POST_PROMPT_MARKER, VSCODE_PRE_PROMPT_MARKER,
-};
-use nu_protocol::{
-    engine::{EngineState, Stack},
-    Value,
-};
+use crate::prompt_update::{POST_PROMPT_MARKER, PRE_PROMPT_MARKER};
 #[cfg(windows)]
 use nu_utils::enable_vt_processing;
 use reedline::{
@@ -16,8 +10,7 @@ use std::borrow::Cow;
 /// Nushell prompt definition
 #[derive(Clone)]
 pub struct NushellPrompt {
-    shell_integration_osc133: bool,
-    shell_integration_osc633: bool,
+    shell_integration: bool,
     left_prompt_string: Option<String>,
     right_prompt_string: Option<String>,
     default_prompt_indicator: Option<String>,
@@ -25,20 +18,12 @@ pub struct NushellPrompt {
     default_vi_normal_prompt_indicator: Option<String>,
     default_multiline_indicator: Option<String>,
     render_right_prompt_on_last_line: bool,
-    engine_state: EngineState,
-    stack: Stack,
 }
 
 impl NushellPrompt {
-    pub fn new(
-        shell_integration_osc133: bool,
-        shell_integration_osc633: bool,
-        engine_state: EngineState,
-        stack: Stack,
-    ) -> NushellPrompt {
+    pub fn new(shell_integration: bool) -> NushellPrompt {
         NushellPrompt {
-            shell_integration_osc133,
-            shell_integration_osc633,
+            shell_integration,
             left_prompt_string: None,
             right_prompt_string: None,
             default_prompt_indicator: None,
@@ -46,8 +31,6 @@ impl NushellPrompt {
             default_vi_normal_prompt_indicator: None,
             default_multiline_indicator: None,
             render_right_prompt_on_last_line: false,
-            engine_state,
-            stack,
         }
     }
 
@@ -115,61 +98,46 @@ impl Prompt for NushellPrompt {
         }
 
         if let Some(prompt_string) = &self.left_prompt_string {
-            prompt_string.replace('\n', "\r\n").into()
+            let prompt = prompt_string.replace('\n', "\r\n");
+            format!("{prompt} ➤").into()
         } else {
             let default = DefaultPrompt::default();
             let prompt = default
                 .render_prompt_left()
                 .to_string()
                 .replace('\n', "\r\n");
-
-            if self.shell_integration_osc633 {
-                if self.stack.get_env_var(&self.engine_state, "TERM_PROGRAM")
-                    == Some(Value::test_string("vscode"))
-                {
-                    // We're in vscode and we have osc633 enabled
-                    format!("{VSCODE_PRE_PROMPT_MARKER}{prompt}{VSCODE_POST_PROMPT_MARKER}").into()
-                } else if self.shell_integration_osc133 {
-                    // If we're in VSCode but we don't find the env var, but we have osc133 set, then use it
-                    format!("{PRE_PROMPT_MARKER}{prompt}{POST_PROMPT_MARKER}").into()
-                } else {
-                    prompt.into()
-                }
-            } else if self.shell_integration_osc133 {
+            if self.shell_integration {
                 format!("{PRE_PROMPT_MARKER}{prompt}{POST_PROMPT_MARKER}").into()
             } else {
                 prompt.into()
             }
         }
     }
+
     fn render_prompt_right(&self) -> Cow<str> {
+        // if let Some(prompt_string) = &self.right_prompt_string {
+        //     prompt_string.replace('\n', "\r\n").into()
+        // } else {
+        //     let default = DefaultPrompt::default();
+        //     default
+        //         .render_prompt_right()
+        //         .to_string()
+        //         .replace('\n', "\r\n")
+        //         .into()
+        // }
         "".into()
     }
-    fn _render_prompt_right(&self) -> Cow<str> {
-        if let Some(prompt_string) = &self.right_prompt_string {
-            prompt_string.replace('\n', "\r\n").into()
-        } else {
-            let default = DefaultPrompt::default();
-            default
-                .render_prompt_right()
-                .to_string()
-                .replace('\n', "\r\n")
-                .into()
-        }
-    }
-    fn _render_prompt_indicator(&self, _em: PromptEditMode) -> Cow<str> {
-        "\r\n$ ".into()
-    }
-    fn _render_prompt_indicator(&self, edit_mode: PromptEditMode) -> Cow<str> {
-        match edit_mode {
+
+    fn render_prompt_indicator(&self, edit_mode: PromptEditMode) -> Cow<str> {
+        let _: Cow<str> = match edit_mode {
             PromptEditMode::Default => match &self.default_prompt_indicator {
                 Some(indicator) => indicator,
-                None => "> ",
+                None => "$ ",
             }
             .into(),
             PromptEditMode::Emacs => match &self.default_prompt_indicator {
                 Some(indicator) => indicator,
-                None => "> ",
+                None => "$ ",
             }
             .into(),
             PromptEditMode::Vi(vi_mode) => match vi_mode {
@@ -184,7 +152,8 @@ impl Prompt for NushellPrompt {
             }
             .into(),
             PromptEditMode::Custom(str) => self.default_wrapped_custom_string(str).into(),
-        }
+        };
+        "\r\n$ ".into()
     }
 
     fn render_prompt_multiline_indicator(&self) -> Cow<str> {
