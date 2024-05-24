@@ -101,7 +101,7 @@ impl NushellPrompt {
 
         self.render_right_prompt_on_last_line = render_right_prompt_on_last_line;
     }
-
+    #[allow(unused)]
     fn default_wrapped_custom_string(&self, str: String) -> String {
         format!("({str})")
     }
@@ -142,8 +142,10 @@ impl Prompt for NushellPrompt {
             }
         }
     }
-
     fn render_prompt_right(&self) -> Cow<str> {
+        "".into()
+    }
+    fn _render_prompt_right(&self) -> Cow<str> {
         if let Some(prompt_string) = &self.right_prompt_string {
             prompt_string.replace('\n', "\r\n").into()
         } else {
@@ -155,8 +157,10 @@ impl Prompt for NushellPrompt {
                 .into()
         }
     }
-
-    fn render_prompt_indicator(&self, edit_mode: PromptEditMode) -> Cow<str> {
+    fn _render_prompt_indicator(&self, _em: PromptEditMode) -> Cow<str> {
+        "\r\n$ ".into()
+    }
+    fn _render_prompt_indicator(&self, edit_mode: PromptEditMode) -> Cow<str> {
         match edit_mode {
             PromptEditMode::Default => match &self.default_prompt_indicator {
                 Some(indicator) => indicator,
