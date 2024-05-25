@@ -18,6 +18,7 @@ pub struct NushellPrompt {
     default_vi_normal_prompt_indicator: Option<String>,
     default_multiline_indicator: Option<String>,
     render_right_prompt_on_last_line: bool,
+    
 }
 
 impl NushellPrompt {
@@ -90,6 +91,18 @@ impl NushellPrompt {
     }
 }
 
+pub fn init_prompt_env() {
+    unsafe {
+        if let Ok(env) = std::env::var("NU_PROMPT") {
+            let env = env.replace("$n", "\r\n");
+            let sp: Vec<_> = env.splitn(2, "{prompt}").collect();
+            println!();
+            PROPMT = Some((sp[0].to_owned(), sp[1].to_owned()));
+        }
+    }
+}
+
+static mut PROPMT: Option<(String, String)> = None;
 impl Prompt for NushellPrompt {
     fn render_prompt_left(&self) -> Cow<str> {
         #[cfg(windows)]
@@ -99,7 +112,16 @@ impl Prompt for NushellPrompt {
 
         if let Some(prompt_string) = &self.left_prompt_string {
             let prompt = prompt_string.replace('\n', "\r\n");
-            format!("{prompt} ➤").into()
+            unsafe {
+                #[allow(static_mut_refs)]
+                if let Some(data) = &PROPMT {
+                    let value = format!("{}{prompt}{}", data.0, data.1);
+                    value
+                } else {
+                    prompt
+                }
+                .into()
+            }
         } else {
             let default = DefaultPrompt::default();
             let prompt = default
@@ -115,16 +137,6 @@ impl Prompt for NushellPrompt {
     }
 
     fn render_prompt_right(&self) -> Cow<str> {
-        // if let Some(prompt_string) = &self.right_prompt_string {
-        //     prompt_string.replace('\n', "\r\n").into()
-        // } else {
-        //     let default = DefaultPrompt::default();
-        //     default
-        //         .render_prompt_right()
-        //         .to_string()
-        //         .replace('\n', "\r\n")
-        //         .into()
-        // }
         "".into()
     }
 
@@ -153,7 +165,7 @@ impl Prompt for NushellPrompt {
             .into(),
             PromptEditMode::Custom(str) => self.default_wrapped_custom_string(str).into(),
         };
-        "\r\n$ ".into()
+        "$ ".into()
     }
 
     fn render_prompt_multiline_indicator(&self) -> Cow<str> {

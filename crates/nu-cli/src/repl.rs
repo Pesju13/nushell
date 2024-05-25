@@ -75,10 +75,11 @@ pub fn evaluate_repl(
     let shell_integration_osc633 = config.shell_integration_osc633;
 
     let nu_prompt = NushellPrompt::new(
-        shell_integration_osc133,
-        shell_integration_osc633,
-        engine_state.clone(),
-        stack.clone(),
+        // shell_integration_osc133,
+        // shell_integration_osc633,
+        // engine_state.clone(),
+        // stack.clone(),
+        shell_integration_osc133
     );
 
     let start_time = std::time::Instant::now();

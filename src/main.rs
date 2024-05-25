@@ -48,6 +48,7 @@ fn get_engine_state() -> EngineState {
 }
 
 fn main() -> Result<()> {
+    nu_cli::init_prompt_env();
     let entire_start_time = std::time::Instant::now();
     let mut start_time = std::time::Instant::now();
     miette::set_panic_hook();
